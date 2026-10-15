@@ -1,0 +1,37 @@
+name: Build Supermarket Desktop Application
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Project Dependencies
+        run: npm install --force
+
+      - name: Build Web Production Assets
+        run: npm run build
+
+      - name: Compile and Build Desktop EXE Package
+        run: |
+          npx nativefier --name "Supermarket_System" "dist" --internal-urls ".*" --platform windows
+          compress-archive -path "Supermarket_System-win32-x64" -destinationpath "Supermarket_Desktop_App.zip"
+
+      - name: Upload Artifacts - Download Ready
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-Executable-Package
+          path: Supermarket_Desktop_App.zip
