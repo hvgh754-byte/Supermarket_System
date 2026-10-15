@@ -1,0 +1,41 @@
+name: Build Supermarket Desktop Application
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Project Dependencies
+        run: npm install --force
+
+      - name: Build Web Production Assets
+        run: npm run build
+
+      - name: Configure Electron Dynamic Core
+        run: |
+          echo "const { app, BrowserWindow } = require('electron'); path = require('path'); function createWindow () { const win = new BrowserWindow({ width: 1200, height: 800, icon: path.join(__dirname, 'dist/favicon.ico'), webPreferences: { nodeIntegration: true } }); win.loadFile('dist/index.html'); } app.whenReady().then(createWindow);" > main.js
+          echo '{"name": "supermarket-system", "version": "1.0.0", "main": "main.js", "scripts": { "build-electron": "electron-builder --dir" }, "build": { "appId": "com.developer.supermarket", "productName": "Supermarket_System", "directories": { "output": "build-out" }, "files": [ "dist/**/*", "main.js" ], "win": { "target": "portable" } } }' > package-electron.json
+          npm install electron electron-builder --save-dev --force
+
+      - name: Compile and Bundle Desktop EXE Package
+        run: npx electron-builder --config package-electron.json --win portable
+
+      - name: Upload Artifacts - Download Ready
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-Executable-Package
+          path: build-out/Supermarket_System*.exe
